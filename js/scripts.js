@@ -96,4 +96,75 @@
         });
     });
 
-})(jQuery);
+    const firebaseConfig = {
+        apiKey: "AIzaSyCIWuWfz2gA8AQK0aH5-zSvhHAEUywr-YA",
+        authDomain: "hit-counter-415d1.firebaseapp.com",
+        projectId: "hit-counter-415d1",
+        storageBucket: "hit-counter-415d1.appspot.com",
+        messagingSenderId: "777614445212",
+        appId: "1:777614445212:web:19fbc099c2906e698e7b59",
+        databaseURL: "https://hit-counter-415d1-default-rtdb.asia-southeast1.firebasedatabase.app"
+    };
+    firebase.initializeApp(firebaseConfig);
+
+    const hitCounter = document.getElementById("hit-counter");
+    hitCounter.style.display = "none";
+    const lastViewedOn = document.getElementById("last-viewed-on");
+    lastViewedOn.style.display = "none";
+    const db = firebase.database().ref("totalHit");
+    db.on("value", (snapshot) => {
+        hitCounter.textContent = snapshot.val()?.totalHits;
+        const lastViewedOnFromServer = snapshot.val()?.lastViewedOn;
+        if (lastViewedOnFromServer) {
+            const convertedDate = new Date(lastViewedOnFromServer).toLocaleString("vn-VN", {timeZone: "Asia/Ho_Chi_Minh", hour12: false});
+            lastViewedOn.textContent = convertedDate;
+        }
+    });
+    const userCookieName = "returningVisitor";
+    checkUserCookie(userCookieName);
+
+    function checkUserCookie(userCookieName) {
+        const regEx = new RegExp(userCookieName, "g");
+        const cookieExists = document.cookie.match(regEx);
+        if (cookieExists != null) {
+            hitCounter.style.display = "inline";
+            lastViewedOn.style.display = "inline";
+        } else {
+            createUserCookie(userCookieName);
+            db.transaction(
+                (totalHit) => {
+                    const totalHits = totalHit?.totalHits || 0;
+                    const lastViewedOn = new Date().toUTCString();
+                    const newTotalHits = totalHits + 1;
+                    return {
+                        totalHits: newTotalHits,
+                        lastViewedOn
+                    }
+                },
+                (error) => {
+                    if (error) {
+                        console.log(error);
+                    } else {
+                        hitCounter.style.display = "inline";
+                        lastViewedOn.style.display = "inline";
+                    }
+                }
+            );
+        }
+    }
+
+    function createUserCookie(userCookieName) {
+        const userCookieValue = "Yes";
+        const userCookieDays = 7;
+        let expiryDate = new Date();
+        expiryDate.setDate(expiryDate.getDate() + userCookieDays);
+        document.cookie =
+            userCookieName +
+            "=" +
+            userCookieValue +
+            "; expires=" +
+            expiryDate.toGMTString() +
+            "path=/";
+    }
+
+})(jQuery, firebase);
